@@ -1,0 +1,9 @@
+{"Lyn":
+	{"char_stats": 
+		{"Atk": 10, "Spd": 10, "Skill": 10, "Luck": 15, "Def": 5, "Res": 5, "Mov": 5, "Con": 5, "Aid": 4},
+	"level_stats":
+		{"level":10}
+
+
+	}
+}
