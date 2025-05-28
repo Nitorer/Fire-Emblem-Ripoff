@@ -21,8 +21,8 @@ MapWidth = 14
 MapHeight = 9
 #Key = Character, [X Pos, Y Pos, SelectedStatus(0 is false, 1 is true)]
 PositionDict = {
-	"Lyn": [5,5],
-	"Brig": [0,0],
+	"Lyn": [5,5,False],
+	"Brig": [5,2,False]
 }
 SelectorPos = [5,5]
 SelectedDict = {

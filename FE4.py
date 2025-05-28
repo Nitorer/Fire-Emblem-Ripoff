@@ -44,7 +44,7 @@ class Game:
 #Finds what character the Selector is on by comparing the Array in the Position Dictionary, and assigns Ly and Lx to the
 #selected character 
 	def GetCharPosKey(self, x, y):
-		value = next((i for i in PositionDict if PositionDict[i] == [x, y]), None)
+		value = next((i for i in PositionDict if PositionDict[i][:2] == [x, y]), None)
 		print(value)
 		return value
 
@@ -173,6 +173,7 @@ class Game:
 						self.AssignCharVar()
 						Over = not Over
 						self.DrawMovDistance(PrevLy,PrevLx,Mov)
+						PositionDict[CharKey][2] = False	
 						PrevLx = Lx
 						PrevLy = Ly
 						if Over == False:
@@ -180,13 +181,18 @@ class Game:
 					
 				if event.key == pygame.K_s:
 					self.ClearSurface()
-					
-					PositionDict[CharKey][0] = PrevLx
-					PositionDict[CharKey][1] = PrevLy
-					Over = False
+					CharKey = self.GetCharPosKey(Sx,Sy)
+					if CharKey != None:
+						PositionDict[CharKey][0] = PrevLx
+						PositionDict[CharKey][1] = PrevLy
+						PositionDict[CharKey][2] = False
+						Over = False
 
 				if event.key == pygame.K_q:
 					self.StatScreen()
+				if event.key == pygame.K_w:
+					print(PositionDict)
+     
 
 
 
