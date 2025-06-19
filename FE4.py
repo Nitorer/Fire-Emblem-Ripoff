@@ -96,7 +96,7 @@ class Game:
 		self.mov_surface.fill((0, 0, 0, 0))  # Clear the surface with transparency
 		for x in range(15):
 			for y in range(10):
-				if (abs(Sx - x)) + (abs(Sy - y)) < Mov + 1:
+				if (abs(PrevLx - x)) + (abs(PrevLy - y)) <= Mov and not self.IsTileOccupied(x, y, CharKey):
 	                # Draw the movement tile onto the mov_surface
 					self.mov_surface.blit(MovTile, (x * 64, y * 64))
 
@@ -105,6 +105,11 @@ class Game:
 	def ClearSurface(self):
 		self.mov_surface.fill((0,0,0,0))
 
+	def IsTileOccupied(self, x, y, ignore_key=None):
+		for key, value in PositionDict.items():
+			if key != ignore_key and value[0] == x and value[1] == y:
+				return True
+		return False
 
 	def events(self):
 		global Sx, Sy, Lx, Ly, Over, PrevLx, PrevLy, CharKey
@@ -117,53 +122,57 @@ class Game:
 			if event.type == pygame.KEYDOWN:
 
 				if event.key == pygame.K_LEFT:
-					if self.MoveLim(PrevLy, PrevLx, Lx-1, Ly): #and self.GetCharPosKey(Sx-1,Sy) == None:
-						self.MovLeft(Sx)
-						if Sx < 0:
-							Sx = 0
-
-						if Over:
+					if Over:
+						if self.MoveLim(PrevLy, PrevLx, Lx-1, Ly) and not self.IsTileOccupied(Sx-1, Sy, CharKey):
+							self.MovLeft(Sx)
 							PositionDict[CharKey][0] = Sx
 							Lx = PositionDict[CharKey][0]
+
+
+					else:
+						self.MovLeft(Sx)
 
 						print(Sx, Sy)
 
 
 				if event.key == pygame.K_RIGHT:
 					
-					if self.MoveLim(PrevLy, PrevLx, Lx+1, Ly): #and self.GetCharPosKey(Sx+1,Sy) == None :
-						self.MovRight(Sx)
-						if Sx > 14:
-							Sx = 14
-
-						if Over:
+					if Over:
+						if self.MoveLim(PrevLy, PrevLx, Lx+1, Ly) and not self.IsTileOccupied(Sx+1, Sy, CharKey):
+							self.MovRight(Sx)
 							PositionDict[CharKey][0] = Sx
-							Lx = PositionDict[CharKey][0]					
+							Lx = PositionDict[CharKey][0]
+
+
+					else:
+						self.MovRight(Sx)				
 
 						print(Sx, Sy)
 
 				if event.key == pygame.K_UP:
 					
-					if self.MoveLim(PrevLy, PrevLx, Lx, Ly-1): #and self.GetCharPosKey(Sx,Sy-1) == None:
-						self.MovUp(Sy)
-
-						if Sy < 0:
-							Sy = 0						
-						if Over:
+					if Over:
+						if self.MoveLim(PrevLy, PrevLx, Lx, Ly-1) and not self.IsTileOccupied(Sx, Sy-1, CharKey):
+							self.MovUp(Sy)
 							PositionDict[CharKey][1] = Sy
 							Ly = PositionDict[CharKey][1]
+
+
+					else:
+						self.MovUp(Sy)
 						
 						print(Sx, Sy)
 				if event.key == pygame.K_DOWN:
 					
-					if self.MoveLim(PrevLy, PrevLx, Lx, Ly+1):# and self.GetCharPosKey(Sx,Sy+1) == None:
-						self.MovDown(Sy)
-						if Sy > 9:
-							Sy = 9
-
-						if Over:
+					if Over:
+						if self.MoveLim(PrevLy, PrevLx, Lx, Ly+1) and not self.IsTileOccupied(Sx, Sy+1, CharKey):
+							self.MovDown(Sy)
 							PositionDict[CharKey][1] = Sy
 							Ly = PositionDict[CharKey][1]
+
+
+					else:
+						self.MovDown(Sy)
 
 						print(Sx, Sy)
 
