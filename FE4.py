@@ -12,6 +12,10 @@ import os
 #Have the function check every position on the map and then see if the tile is less than mov away, if it is then blit a blue square on it.
 #Use a dictionary to store the positions of everything, then use a function to search in the dictionary to see if the x and y are the same
 
+#Start using animation and tilemaps instead of just images.
+#Add in weapons and ranges so when a unit is in the red they can attack 
+#When a unit is selected and they click it again they should open a menu that will allow them to either wait, attack if possible, or change their inventory. 
+
 
 
 class Game:
@@ -92,11 +96,12 @@ class Game:
 		Distance = (abs(Lx - PrevLx) + abs(Ly - PrevLy))
 		return Distance <= 5
 
-	def DrawMovDistance(self, PrevLy, PrevLx, Mov):
-		self.mov_surface.fill((0, 0, 0, 0))  # Clear the surface with transparency
+	def DrawMovDistance(self, Sy, Sx, Mov):
+		self.mov_surface.fill((0, 0, 0, 0))
+		print('Selector Cordinates are ', Sx, Sy)# Clear the surface with transparency
 		for x in range(15):
 			for y in range(10):
-				if (abs(PrevLx - x)) + (abs(PrevLy - y)) <= Mov and not self.IsTileOccupied(x, y, CharKey):
+				if (abs(Sx - x)) + (abs(Sy - y)) <= Mov and not self.IsTileOccupied(x, y, CharKey):
 	                # Draw the movement tile onto the mov_surface
 					self.mov_surface.blit(MovTile, (x * 64, y * 64))
 
@@ -181,7 +186,7 @@ class Game:
 					if CharKey != None:
 						self.AssignCharVar()
 						Over = not Over
-						self.DrawMovDistance(PrevLy,PrevLx,Mov)
+						self.DrawMovDistance(Sy,Sx,Mov)
 						PositionDict[CharKey][2] = False	
 						PrevLx = Lx
 						PrevLy = Ly
