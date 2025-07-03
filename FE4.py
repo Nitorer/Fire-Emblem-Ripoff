@@ -7,285 +7,227 @@ import time
 import json
 import os 
 
-#Keep the variables in Config.py
-#Make a layer that shows how much they can move
-#Have the function check every position on the map and then see if the tile is less than mov away, if it is then blit a blue square on it.
-#Use a dictionary to store the positions of everything, then use a function to search in the dictionary to see if the x and y are the same
-
-#Start using animation and tilemaps instead of just images.
-#Add in weapons and ranges so when a unit is in the red they can attack 
-#When a unit is selected and they click it again they should open a menu that will allow them to either wait, attack if possible, or change their inventory. 
-
-
 
 class Game:
-
-
-	def __init__(self):
-		pygame.init()
-		self.screen = pygame.display.set_mode((960,640))
-		self.clock = pygame.time.Clock()
-		self.font = pygame.font.Font("gba-fe-dialogue.ttf", 40)
-		self.running = True
-		self.playing = True
-
-		self.mov_surface = pygame.Surface((960, 640), pygame.SRCALPHA) 
-
-
-	def new(self):
-		#self.playing = True
-
-		self.all_sprites = pygame.sprite.LayeredUpdates()
-		self.blocks = pygame.sprite.LayeredUpdates()
-		self.enemies = pygame.sprite.LayeredUpdates()
-		self.attacks = pygame.sprite.LayeredUpdates()
-
-		self.selector = Selector(self, Sx, Sy)
-		self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1]) # type: ignore
-		self.brigand = Brigand(self, PositionDict["Brig"][0], PositionDict["Brig"][1])
-
-
-#Finds what character the Selector is on by comparing the Array in the Position Dictionary, and assigns Ly and Lx to the
-#selected character 
-	def GetCharPosKey(self, x, y):
-		value = next((i for i in PositionDict if PositionDict[i][:2] == [x, y]), None)
-		print(value)
-		return value
-
-
-	def AssignCharVar(self):
-		global Ly, Lx
-		CharKey = self.GetCharPosKey(Sx, Sy)
-		
-		Lx = PositionDict[CharKey][0]
-		Ly = PositionDict[CharKey][1]
-
-		print(Lx, Ly)
-
-
-#Movement 
-
-	def MovLeft(self, x):
-		global Sx
-		Sx -= 1
-		SelectorPos[0] = Sx  
-
-	def MovRight(self, x):
-		global Sx
-		Sx += 1
-		SelectorPos[0] = Sx 
-
-	def MovUp(self, y):
-		global Sy
-		Sy -= 1
-		SelectorPos[1] = Sy
-
-	def MovDown(self, y):
-		global Sy
-		Sy += 1
-		SelectorPos[1] = Sy
-			
-
-
-
-
-
-
-	#Funtion to limit the amount of spaces a unit can move 
-	def MoveLim(self, PrevLy, PrevLx, Lx, Ly):
-		Distance = (abs(Lx - PrevLx) + abs(Ly - PrevLy))
-		return Distance <= 5
-
-	def DrawMovDistance(self, Sy, Sx, Mov):
-		self.mov_surface.fill((0, 0, 0, 0))
-		print('Selector Cordinates are ', Sx, Sy)# Clear the surface with transparency
-		for x in range(15):
-			for y in range(10):
-				if (abs(Sx - x)) + (abs(Sy - y)) <= Mov and not self.IsTileOccupied(x, y, CharKey):
-	                # Draw the movement tile onto the mov_surface
-					self.mov_surface.blit(MovTile, (x * 64, y * 64))
-
-
-
-	def ClearSurface(self):
-		self.mov_surface.fill((0,0,0,0))
-
-	def IsTileOccupied(self, x, y, ignore_key=None):
-		for key, value in PositionDict.items():
-			if key != ignore_key and value[0] == x and value[1] == y:
-				return True
-		return False
-
-	def events(self):
-		global Sx, Sy, Lx, Ly, Over, PrevLx, PrevLy, CharKey
-		pygame.key.set_repeat(200)
-		
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				self.running = False
-				self.playing = False
-			if event.type == pygame.KEYDOWN:
-
-				if event.key == pygame.K_LEFT:
-					if Over:
-						if self.MoveLim(PrevLy, PrevLx, Lx-1, Ly) and not self.IsTileOccupied(Sx-1, Sy, CharKey):
-							self.MovLeft(Sx)
-							PositionDict[CharKey][0] = Sx
-							Lx = PositionDict[CharKey][0]
-
-
-					else:
-						self.MovLeft(Sx)
-
-						print(Sx, Sy)
-
-
-				if event.key == pygame.K_RIGHT:
-					
-					if Over:
-						if self.MoveLim(PrevLy, PrevLx, Lx+1, Ly) and not self.IsTileOccupied(Sx+1, Sy, CharKey):
-							self.MovRight(Sx)
-							PositionDict[CharKey][0] = Sx
-							Lx = PositionDict[CharKey][0]
-
-
-					else:
-						self.MovRight(Sx)				
-
-						print(Sx, Sy)
-
-				if event.key == pygame.K_UP:
-					
-					if Over:
-						if self.MoveLim(PrevLy, PrevLx, Lx, Ly-1) and not self.IsTileOccupied(Sx, Sy-1, CharKey):
-							self.MovUp(Sy)
-							PositionDict[CharKey][1] = Sy
-							Ly = PositionDict[CharKey][1]
-
-
-					else:
-						self.MovUp(Sy)
-						
-						print(Sx, Sy)
-				if event.key == pygame.K_DOWN:
-					
-					if Over:
-						if self.MoveLim(PrevLy, PrevLx, Lx, Ly+1) and not self.IsTileOccupied(Sx, Sy+1, CharKey):
-							self.MovDown(Sy)
-							PositionDict[CharKey][1] = Sy
-							Ly = PositionDict[CharKey][1]
-
-
-					else:
-						self.MovDown(Sy)
-
-						print(Sx, Sy)
-
-				if event.key == pygame.K_a:
-					CharKey = self.GetCharPosKey(Sx,Sy)
-					if CharKey != None:
-						self.AssignCharVar()
-						Over = not Over
-						self.DrawMovDistance(Sy,Sx,Mov)
-						PositionDict[CharKey][2] = False	
-						PrevLx = Lx
-						PrevLy = Ly
-						if Over == False:
-							self.ClearSurface()
-					
-				if event.key == pygame.K_s:
-					self.ClearSurface()
-					CharKey = self.GetCharPosKey(Sx,Sy)
-					if CharKey != None:
-						PositionDict[CharKey][0] = PrevLx
-						PositionDict[CharKey][1] = PrevLy
-						PositionDict[CharKey][2] = False
-						Over = False
-
-				if event.key == pygame.K_q:
-					self.StatScreen()
-				if event.key == pygame.K_w:
-					print(PositionDict)
-     
-
-
-
-
-	def draw_text(self, text, font, color, surface, x, y):
-		textobj = font.render(text, 1, color)
-		textrect = textobj.get_rect()
-		textrect.topleft = (x, y)
-		surface.blit(textobj, textrect)
-
-
-
-
-
-	def StatScreen(self):
-
-		running = True
-		statposX = (405)
-		statposY = (105)
-		while running:
-			self.screen.fill((0,211,0))
-			pygame.draw.rect(self.screen,(255,255,0),pygame.Rect(395,95,530,410))
-			pygame.draw.rect(self.screen,(96,76,225),pygame.Rect(400,100,520,400))
-			#Position then size for rect 
-
-
-
-	 
-			self.draw_text('Character Screen', self.font, (139,0, 0), self.screen,500, 20)
-
-
-			with open("Stats.json","r") as f:
-				statsDict = json.load(f)
-			for stat,value in statsDict["Lyn"]["char_stats"].items():
-				self.draw_text(stat + ": " + str(value), self.font, (0,0,0), self.screen, statposX, statposY )
-
-				statposY = statposY + 70
-				if statposY >= 480:
-					statposY = 105
-					statposX = 625
-			statposY = 105
-			statposX = 405
-			for event in pygame.event.get():
-				if event.type == pygame.QUIT:
-					running = False
-					exit()
-				if event.type == pygame.KEYDOWN:
-					if event.key == pygame.K_ESCAPE:
-						running = False
-					
-			self.screen.blit(LynFaceL, (30,10))
-			pygame.display.update()
-
-
-	def update(self):
-		self.all_sprites.update()
-		self.new()
-
-
-	def draw(self):
-		self.screen.blit(BACKGROUND, (0, 0))
-		# Draw movement tiles surface on the main screen
-		self.screen.blit(self.mov_surface, (0, 0))
-		self.all_sprites.draw(self.screen)
-		self.clock.tick(FPS)
-		pygame.display.update()
-
-	def main(self):
-		#loop
-		while self.playing:
-			self.events()
-			self.update()
-			self.draw()
-		self.running = False
-
-
+    def __init__(self):
+        pygame.init()
+        self.screen = pygame.display.set_mode((960, 640))
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font("gba-fe-dialogue.ttf", 40)
+        self.running = True
+        self.playing = True
+
+        self.mov_surface = pygame.Surface((960, 640), pygame.SRCALPHA)
+
+        # Game state
+        self.Sx, self.Sy = 5, 5
+        self.Lx, self.Ly = 0, 0
+        self.PrevLx, self.PrevLy = None, None
+        self.CharKey = None
+        self.Over = False
+        self.Mov = 5
+
+    def new(self):
+        self.all_sprites = pygame.sprite.LayeredUpdates()
+        self.blocks = pygame.sprite.LayeredUpdates()
+        self.enemies = pygame.sprite.LayeredUpdates()
+        self.attacks = pygame.sprite.LayeredUpdates()
+
+        self.selector = Selector(self, self.Sx, self.Sy)
+        self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1])
+        self.brigand = Brigand(self, PositionDict["Brig"][0], PositionDict["Brig"][1])
+
+    def GetCharPosKey(self, x, y):
+        value = next((i for i in PositionDict if PositionDict[i][:2] == [x, y]), None)
+        print(value)
+        return value
+
+    def AssignCharVar(self):
+        self.CharKey = self.GetCharPosKey(self.Sx, self.Sy)
+        if self.CharKey:
+            self.Lx = PositionDict[self.CharKey][0]
+            self.Ly = PositionDict[self.CharKey][1]
+            print(self.Lx, self.Ly)
+
+    def MovLeft(self):
+        self.Sx -= 1
+
+    def MovRight(self):
+        self.Sx += 1
+
+    def MovUp(self):
+        self.Sy -= 1
+
+    def MovDown(self):
+        self.Sy += 1
+
+    def MoveLim(self, prev_ly, prev_lx, new_lx, new_ly):
+        return abs(new_lx - prev_lx) + abs(new_ly - prev_ly) <= self.Mov
+
+    def DrawMovDistance(self):
+        self.mov_surface.fill((0, 0, 0, 0))
+        for x in range(15):
+            for y in range(10):
+                if (abs(self.Sx - x) + abs(self.Sy - y)) <= self.Mov and not self.IsTileOccupied(x, y, self.CharKey):
+                    self.mov_surface.blit(MovTile, (x * 64, y * 64))
+
+    def draw_menu(self):
+        selected = 0
+        running = True
+        while running:
+            self.screen.fill(BLACK)
+            for i, text in enumerate(options):
+                color = BLUE if i == selected else WHITE
+                label = self.font.render(text, True, color)
+                self.screen.blit(label, (250, 150 + i * 50))
+
+            pygame.display.flip()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.running = False
+                    return
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        selected = (selected - 1) % len(options)
+                    elif event.key == pygame.K_DOWN:
+                        selected = (selected + 1) % len(options)
+                    elif event.key == pygame.K_RETURN:
+                        print(f"Selected option: {options[selected]}")
+                        running = False
+                    elif event.key == pygame.K_ESCAPE:
+                        running = False
+
+    def ClearSurface(self):
+        self.mov_surface.fill((0, 0, 0, 0))
+
+    def IsTileOccupied(self, x, y, ignore_key=None):
+        for key, value in PositionDict.items():
+            if key != ignore_key and value[0] == x and value[1] == y:
+                return True
+        return False
+
+    def events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+                self.playing = False
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx - 1, self.Ly) and not self.IsTileOccupied(self.Sx - 1, self.Sy, self.CharKey):
+                        self.MovLeft()
+                        PositionDict[self.CharKey][0] = self.Sx
+                        self.Lx = self.Sx
+                    elif not self.Over:
+                        self.MovLeft()
+
+                elif event.key == pygame.K_RIGHT:
+                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx + 1, self.Ly) and not self.IsTileOccupied(self.Sx + 1, self.Sy, self.CharKey):
+                        self.MovRight()
+                        PositionDict[self.CharKey][0] = self.Sx
+                        self.Lx = self.Sx
+                    elif not self.Over:
+                        self.MovRight()
+
+                elif event.key == pygame.K_UP:
+                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx, self.Ly - 1) and not self.IsTileOccupied(self.Sx, self.Sy - 1, self.CharKey):
+                        self.MovUp()
+                        PositionDict[self.CharKey][1] = self.Sy
+                        self.Ly = self.Sy
+                    elif not self.Over:
+                        self.MovUp()
+
+                elif event.key == pygame.K_DOWN:
+                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx, self.Ly + 1) and not self.IsTileOccupied(self.Sx, self.Sy + 1, self.CharKey):
+                        self.MovDown()
+                        PositionDict[self.CharKey][1] = self.Sy
+                        self.Ly = self.Sy
+                    elif not self.Over:
+                        self.MovDown()
+
+                elif event.key == pygame.K_a:
+                    self.CharKey = self.GetCharPosKey(self.Sx, self.Sy)
+                    if self.CharKey:
+                        self.AssignCharVar()
+                        self.Over = not self.Over
+                        self.DrawMovDistance()
+                        PositionDict[self.CharKey][2] = False
+                        self.PrevLx = self.Lx
+                        self.PrevLy = self.Ly
+                        if self.Over == False:
+                            self.ClearSurface()
+
+                elif event.key == pygame.K_s:
+                    self.ClearSurface()
+                    self.CharKey = self.GetCharPosKey(self.Sx, self.Sy)
+                    if self.CharKey:
+                        PositionDict[self.CharKey][0] = self.PrevLx
+                        PositionDict[self.CharKey][1] = self.PrevLy
+                        PositionDict[self.CharKey][2] = False
+                        self.Over = False
+
+                elif event.key == pygame.K_q:
+                    self.draw_menu()
+
+                elif event.key == pygame.K_w:
+                    print(PositionDict)
+
+    def draw_text(self, text, font, color, surface, x, y):
+        textobj = font.render(text, True, color)
+        surface.blit(textobj, (x, y))
+
+    def StatScreen(self):
+        statposX, statposY = 405, 105
+        running = True
+        while running:
+            self.screen.fill((0, 211, 0))
+            pygame.draw.rect(self.screen, (255, 255, 0), pygame.Rect(395, 95, 530, 410))
+            pygame.draw.rect(self.screen, (96, 76, 225), pygame.Rect(400, 100, 520, 400))
+            self.draw_text('Character Screen', self.font, (139, 0, 0), self.screen, 500, 20)
+
+            with open("Stats.json", "r") as f:
+                statsDict = json.load(f)
+
+            for stat, value in statsDict["Lyn"]["char_stats"].items():
+                self.draw_text(f"{stat}: {value}", self.font, (0, 0, 0), self.screen, statposX, statposY)
+                statposY += 70
+                if statposY >= 480:
+                    statposY = 105
+                    statposX = 625
+
+            statposX, statposY = 405, 105
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    exit()
+                elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    running = False
+
+            self.screen.blit(LynFaceL, (30, 10))
+            pygame.display.update()
+
+    def update(self):
+        self.all_sprites.update()
+
+    def draw(self):
+        self.screen.blit(BACKGROUND, (0, 0))
+        self.screen.blit(self.mov_surface, (0, 0))
+        self.all_sprites.draw(self.screen)
+        self.clock.tick(FPS)
+        pygame.display.update()
+
+    def main(self):
+        while self.playing:
+            self.events()
+            self.update()
+            self.draw()
+            self.new()
+        self.running = False
+
+
+# Main loop
 g = Game()
 g.new()
 while g.running:
-	g.main()
-
+    g.main()
 pygame.quit()
