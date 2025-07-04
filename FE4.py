@@ -69,22 +69,37 @@ class Game:
         for x in range(15):
             for y in range(10):
                 if (abs(self.Sx - x) + abs(self.Sy - y)) <= self.Mov and not self.IsTileOccupied(x, y, self.CharKey):
-                    self.mov_surface.blit(MovTile, (x * 64, y * 64))
+                    self.mov_surface.blit(MovTile, (x * TILESIZE, y * TILESIZE))
+    def DrawAtkDistance(self):
+        self.mov_surface.fill((0, 0, 0, 0))
+        self.atkRange = 1
+        for x in range(15):
+            for y in range(10):
+                if (abs(self.Sx - x) + abs(self.Sy - y)) <= self.atkRange and not self.IsTileOccupied(x, y, self.CharKey):
+                    self.mov_surface.blit(MovTile, (x * TILESIZE, y * TILESIZE))
 
-    def draw_menu(self):
+    def draw_menu(self): 
         selected = 0
-        running = True
-        while running:
-            self.screen.fill(BLACK)
+        MenuOn = True
+        while MenuOn:
+            self.mov_surface.fill((0, 0, 0, 0))
+            rect_x = 100
+            rect_y = 100
+            rect_width = 200
+            rect_height = len(options) * 70
+            rectangle = pygame.Rect(rect_x, rect_y, rect_width, rect_height)
+
+            self.menurect = pygame.draw.rect(self.screen, MENU_BLUE, rectangle)
             for i, text in enumerate(options):
                 color = BLUE if i == selected else WHITE
                 label = self.font.render(text, True, color)
-                self.screen.blit(label, (250, 150 + i * 50))
+                self.screen.blit(label, (120, 120 + i * TILESIZE))
 
             pygame.display.flip()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.running = False
+                    MenuOn = False
+                    self.playing = False
                     return
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
@@ -93,9 +108,15 @@ class Game:
                         selected = (selected + 1) % len(options)
                     elif event.key == pygame.K_RETURN:
                         print(f"Selected option: {options[selected]}")
-                        running = False
+                        MenuOn = False
+                        return selected
+                        #Wait = Normal method rn
+                        #Item = Open the stat menu for rn
+                        #Attack should search if there is a unit in range, if there isnt then wait for right now 
+                        
+                        
                     elif event.key == pygame.K_ESCAPE:
-                        running = False
+                        MenuOn = False
 
     def ClearSurface(self):
         self.mov_surface.fill((0, 0, 0, 0))
@@ -150,12 +171,22 @@ class Game:
                     if self.CharKey:
                         self.AssignCharVar()
                         self.Over = not self.Over
-                        self.DrawMovDistance()
-                        PositionDict[self.CharKey][2] = False
-                        self.PrevLx = self.Lx
-                        self.PrevLy = self.Ly
-                        if self.Over == False:
-                            self.ClearSurface()
+                        
+                        if self.Over:
+                            self.DrawMovDistance()
+                            self.PrevLx = self.Lx
+                            self.PrevLy = self.Ly
+                        else:
+                            self.mov_surface.fill((0, 0, 0, 0))
+                            menu_result = self.draw_menu()
+                            if menu_result == 2:
+                                print("Wait")
+                            elif menu_result == 1:
+                                self.DrawAtkDistance()
+                            else:
+                                self.StatScreen()
+                                
+                            
 
                 elif event.key == pygame.K_s:
                     self.ClearSurface()
@@ -163,7 +194,6 @@ class Game:
                     if self.CharKey:
                         PositionDict[self.CharKey][0] = self.PrevLx
                         PositionDict[self.CharKey][1] = self.PrevLy
-                        PositionDict[self.CharKey][2] = False
                         self.Over = False
 
                 elif event.key == pygame.K_q:
