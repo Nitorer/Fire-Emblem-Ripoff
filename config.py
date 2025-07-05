@@ -13,9 +13,7 @@ SELECTOR_LAYER = 3
 LYN_LAYER = 2
 MOV_LAYER =1
 TILESIZE = 64
-BACKGROUND = pygame.image.load('plains.png')
-MovTile = pygame.image.load('MovTile.png')
-LynFaceL = pygame.image.load('LynFaceL.png')
+IMAGE_KEYS = ["plains", "MovTile", "LynFaceL", "Selector", "Lyn", "Brigand","AtkTile"]
 
 FPS = 30
 Mov = 5

@@ -19,6 +19,16 @@ class Game:
         self.playing = True
 
         self.mov_surface = pygame.Surface((960, 640), pygame.SRCALPHA)
+
+
+        #Images
+        self.images = load_images("Assets")
+        self.BACKGROUND = self.images["Plains"]
+        self.MovTile = self.images["MovTile"]
+        self.AtkTile = self.images["AtkTile"]
+        self.LynFaceL = self.images["LynFaceL"]
+
+        
         # Game state
         self.Sx, self.Sy = 5, 5
         self.Lx, self.Ly = 0, 0
@@ -33,9 +43,9 @@ class Game:
         self.enemies = pygame.sprite.LayeredUpdates()
         self.attacks = pygame.sprite.LayeredUpdates()
 
-        self.selector = Selector(self, self.Sx, self.Sy)
-        self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1])
-        self.brigand = Brigand(self, PositionDict["Brig"][0], PositionDict["Brig"][1])
+        self.selector = Selector(self, self.Sx, self.Sy, self.images["Selector"])
+        self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1], self.images["Lyn"])
+        self.brigand = Brigand(self, PositionDict["Brig"][0], PositionDict["Brig"][1], self.images["Brigand"])
 
     def GetCharPosKey(self, x, y):
         value = next((i for i in PositionDict if PositionDict[i][:2] == [x, y]), None)
@@ -69,14 +79,14 @@ class Game:
         for x in range(15):
             for y in range(10):
                 if (abs(self.Sx - x) + abs(self.Sy - y)) <= self.Mov and not self.IsTileOccupied(x, y, self.CharKey):
-                    self.mov_surface.blit(MovTile, (x * TILESIZE, y * TILESIZE))
+                    self.mov_surface.blit(self.MovTile, (x * TILESIZE, y * TILESIZE))
     def DrawAtkDistance(self):
         self.mov_surface.fill((0, 0, 0, 0))
         self.atkRange = 1
         for x in range(15):
             for y in range(10):
                 if (abs(self.Sx - x) + abs(self.Sy - y)) <= self.atkRange and not self.IsTileOccupied(x, y, self.CharKey):
-                    self.mov_surface.blit(MovTile, (x * TILESIZE, y * TILESIZE))
+                    self.mov_surface.blit(self.AtkTile, (x * TILESIZE, y * TILESIZE))
 
     def draw_menu(self): 
         selected = 0
@@ -233,14 +243,14 @@ class Game:
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     running = False
 
-            self.screen.blit(LynFaceL, (30, 10))
+            self.screen.blit(self.LynFaceL, (30, 10))
             pygame.display.update()
 
     def update(self):
         self.all_sprites.update()
 
     def draw(self):
-        self.screen.blit(BACKGROUND, (0, 0))
+        self.screen.blit(self.BACKGROUND, (0, 0))
         self.screen.blit(self.mov_surface, (0, 0))
         self.all_sprites.draw(self.screen)
         self.clock.tick(FPS)
