@@ -1,5 +1,5 @@
 import pygame
-from Vars import *
+from config import *
 import math
 import random
 
@@ -16,7 +16,7 @@ class Selector(pygame.sprite.Sprite):
 		self.width = TILESIZE
 		self.height = TILESIZE
 
-		self.image = pygame.image.load('Selector.png')
+		self.image = image
 
 		self.rect = self.image.get_rect()
 		self.rect.x = self.x
@@ -43,7 +43,7 @@ class Lyn(pygame.sprite.Sprite):
 		self.width = TILESIZE
 		self.height = TILESIZE
 
-		self.image = pygame.image.load('Lyn.png')
+		self.image = image
 
 		self.rect = self.image.get_rect()
 		self.rect.x = self.x
@@ -65,7 +65,7 @@ class Brigand(pygame.sprite.Sprite):
 		self.width = TILESIZE
 		self.height = TILESIZE
 
-		self.image = pygame.image.load('Brigand.png')
+		self.image = iamge
 
 		self.rect = self.image.get_rect()
 		self.rect.x = self.x

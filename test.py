@@ -1,6 +1,6 @@
 import pygame
-from Sprites import *
-from Vars import * # type: ignore
+from Sprites import
+from config* # type: ignore
 import random
 import math
 import time
@@ -33,9 +33,9 @@ class Game:
         self.enemies = pygame.sprite.LayeredUpdates()
         self.attacks = pygame.sprite.LayeredUpdates()
 
-        self.selector = Selector(self, self.Sx, self.Sy)
-        self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1])
-        self.brigand = Brigand(self, PositionDict["Brig"][0], PositionDict["Brig"][1])
+        self.selector = Selector(self, self.Sx, self.Sy,image=images["Selector"])
+        self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1],image=images["Lyn"])
+        self.brigand = Brigand(self, PositionDict["Brig"][0], PositionDict["Brig"][1],image=images["Brigandr"])
 
     def GetCharPosKey(self, x, y):
         value = next((i for i in PositionDict if PositionDict[i][:2] == [x, y]), None)

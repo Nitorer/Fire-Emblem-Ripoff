@@ -1,6 +1,7 @@
 import pygame
 from Sprites import *
-from Vars import * # type: ignore
+from config import *
+from assets import load_images# type: ignore
 import random
 import math
 import time
@@ -18,7 +19,6 @@ class Game:
         self.playing = True
 
         self.mov_surface = pygame.Surface((960, 640), pygame.SRCALPHA)
-
         # Game state
         self.Sx, self.Sy = 5, 5
         self.Lx, self.Ly = 0, 0
@@ -258,6 +258,7 @@ class Game:
 # Main loop
 g = Game()
 g.new()
+images = load_images("Assets")
 while g.running:
     g.main()
 pygame.quit()

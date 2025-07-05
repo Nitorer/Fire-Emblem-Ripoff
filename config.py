@@ -1,4 +1,5 @@
 import pygame
+
 Sx = 5
 Sy = 5
 Lx = 5
