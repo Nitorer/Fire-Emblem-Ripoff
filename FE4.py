@@ -191,6 +191,8 @@ class Game:
                         self.Lx = self.Sx
                     elif not self.Over and not self.attacking:
                         self.MovLeft()
+                    elif self.attacking and (self.Sx - 1, self.Sy) in self.reachable_tiles:
+                        self.MovLeft()
 
                 elif event.key == pygame.K_RIGHT:
                     if self.Over and (self.Sx + 1, self.Sy) in self.reachable_tiles:
@@ -198,6 +200,8 @@ class Game:
                         PositionDict[self.CharKey][0] = self.Sx
                         self.Lx = self.Sx
                     elif not self.Over and not self.attacking:
+                        self.MovRight()
+                    elif self.attacking and (self.Sx + 1, self.Sy) in self.reachable_tiles:
                         self.MovRight()
 
                 elif event.key == pygame.K_UP:
@@ -207,6 +211,8 @@ class Game:
                         self.Ly = self.Sy
                     elif not self.Over and not self.attacking:
                         self.MovUp()
+                    elif self.attacking and (self.Sx, self.Sy - 1) in self.reachable_tiles:
+                        self.MovUp()    
 
                 elif event.key == pygame.K_DOWN:
                     if self.Over and (self.Sx, self.Sy + 1) in self.reachable_tiles:
@@ -214,6 +220,8 @@ class Game:
                         PositionDict[self.CharKey][1] = self.Sy
                         self.Ly = self.Sy
                     elif not self.Over and not self.attacking:
+                        self.MovDown()
+                    elif self.attacking and (self.Sx, self.Sy + 1) in self.reachable_tiles:
                         self.MovDown()
 
                 elif event.key == pygame.K_a:
