@@ -2,13 +2,23 @@ import pygame
 from Sprites import *
 from config import *
 from assets import load_images# type: ignore
+from collections import deque
 import random
 import math
 import time
 import json
 import os 
 
-
+class Node:
+    def __init__(self, x, y, walkable = True):
+        self.x = x
+        self.y = y
+        self.walkable = walkable
+        self.parent = None
+        self.g = 0 # Cost from start to node
+        self.h = 0 #Heuristic cost to goal
+        self.f = 0 # Total Cost to goal
+        pass
 class Game:
     def __init__(self):
         pygame.init()
@@ -17,6 +27,7 @@ class Game:
         self.font = pygame.font.Font("gba-fe-dialogue.ttf", 40)
         self.running = True
         self.playing = True
+        self.reachable_tiles = []
 
         self.mov_surface = pygame.Surface((960, 640), pygame.SRCALPHA)
 
@@ -34,7 +45,7 @@ class Game:
         self.Lx, self.Ly = 0, 0
         self.PrevLx, self.PrevLy = None, None
         self.CharKey = None
-        self.Over = False
+        self.Over, self.attacking = False, False
         self.Mov = 5
 
     def new(self):
@@ -46,7 +57,39 @@ class Game:
         self.selector = Selector(self, self.Sx, self.Sy, self.images["Selector"])
         self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1], self.images["Lyn"])
         self.brigand = Brigand(self, PositionDict["Brig"][0], PositionDict["Brig"][1], self.images["Brigand"])
+        
+    def generate_grid(self):
+        self.grid = []
+        for y in range(10):
+            row = []
+            for x in range(15):
+                walkable = self.IsTileOccupied(x,y)
+                row.append(Node(x,y,walkable))
+            self.grid.append(row)
+    
+     
+    def get_reachable_nodes(self, start_x, start_y, move_range):
+        visited = set()
+        queue = deque([(start_x, start_y, 0)])
+        reachable = []
 
+        while queue:
+            x, y, dist = queue.popleft()
+            if (x, y) in visited or dist > move_range:
+                continue
+
+            visited.add((x, y))
+            reachable.append((x, y))
+
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < 15 and 0 <= ny < 10:
+                    if not self.IsTileOccupied(nx, ny, self.CharKey):
+                        queue.append((nx, ny, dist + 1))
+        
+        return reachable
+       
+            
     def GetCharPosKey(self, x, y):
         value = next((i for i in PositionDict if PositionDict[i][:2] == [x, y]), None)
         print(value)
@@ -71,18 +114,20 @@ class Game:
     def MovDown(self):
         self.Sy += 1
 
-    def MoveLim(self, prev_ly, prev_lx, new_lx, new_ly):
-        return abs(new_lx - prev_lx) + abs(new_ly - prev_ly) <= self.Mov
+    def MoveLim(self, prev_ly, prev_lx, new_lx, new_ly, Movment):
+        print(prev_lx ,prev_ly)
+        return abs(new_lx - prev_lx) + abs(new_ly - prev_ly) <= Movment
 
     def DrawMovDistance(self):
         self.mov_surface.fill((0, 0, 0, 0))
-        for x in range(15):
-            for y in range(10):
-                if (abs(self.Sx - x) + abs(self.Sy - y)) <= self.Mov and not self.IsTileOccupied(x, y, self.CharKey):
-                    self.mov_surface.blit(self.MovTile, (x * TILESIZE, y * TILESIZE))
+        self.reachable_tiles = self.get_reachable_nodes(self.Lx, self.Ly, self.Mov)
+        for x, y in self.reachable_tiles:
+            self.mov_surface.blit(self.MovTile, (x * TILESIZE, y * TILESIZE))
+            
     def DrawAtkDistance(self):
         self.mov_surface.fill((0, 0, 0, 0))
         self.atkRange = 1
+        self.MoveLim(self.Ly, self.Lx, self.Sy, self.Sx, self.atkRange)
         for x in range(15):
             for y in range(10):
                 if (abs(self.Sx - x) + abs(self.Sy - y)) <= self.atkRange and not self.IsTileOccupied(x, y, self.CharKey):
@@ -144,36 +189,37 @@ class Game:
                 self.playing = False
 
             if event.type == pygame.KEYDOWN:
+    
                 if event.key == pygame.K_LEFT:
-                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx - 1, self.Ly) and not self.IsTileOccupied(self.Sx - 1, self.Sy, self.CharKey):
+                    if self.Over and (self.Sx - 1, self.Sy) in self.reachable_tiles:
                         self.MovLeft()
                         PositionDict[self.CharKey][0] = self.Sx
                         self.Lx = self.Sx
-                    elif not self.Over:
+                    elif not self.Over and not self.attacking:
                         self.MovLeft()
 
                 elif event.key == pygame.K_RIGHT:
-                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx + 1, self.Ly) and not self.IsTileOccupied(self.Sx + 1, self.Sy, self.CharKey):
+                    if self.Over and (self.Sx + 1, self.Sy) in self.reachable_tiles:
                         self.MovRight()
                         PositionDict[self.CharKey][0] = self.Sx
                         self.Lx = self.Sx
-                    elif not self.Over:
+                    elif not self.Over and not self.attacking:
                         self.MovRight()
 
                 elif event.key == pygame.K_UP:
-                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx, self.Ly - 1) and not self.IsTileOccupied(self.Sx, self.Sy - 1, self.CharKey):
+                    if self.Over and (self.Sx, self.Sy - 1) in self.reachable_tiles:
                         self.MovUp()
                         PositionDict[self.CharKey][1] = self.Sy
                         self.Ly = self.Sy
-                    elif not self.Over:
+                    elif not self.Over and not self.attacking:
                         self.MovUp()
 
                 elif event.key == pygame.K_DOWN:
-                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx, self.Ly + 1) and not self.IsTileOccupied(self.Sx, self.Sy + 1, self.CharKey):
+                    if self.Over and (self.Sx, self.Sy + 1) in self.reachable_tiles:
                         self.MovDown()
                         PositionDict[self.CharKey][1] = self.Sy
                         self.Ly = self.Sy
-                    elif not self.Over:
+                    elif not self.Over and not self.attacking:
                         self.MovDown()
 
                 elif event.key == pygame.K_a:
@@ -187,12 +233,15 @@ class Game:
                             self.PrevLx = self.Lx
                             self.PrevLy = self.Ly
                         else:
+                            self.reachable_tiles = []
                             self.mov_surface.fill((0, 0, 0, 0))
                             menu_result = self.draw_menu()
                             if menu_result == 2:
                                 print("Wait")
                             elif menu_result == 1:
+                                self.attacking = True
                                 self.DrawAtkDistance()
+
                             else:
                                 self.StatScreen()
                                 
@@ -242,6 +291,7 @@ class Game:
                     exit()
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     running = False
+                    self.draw_menu()
 
             self.screen.blit(self.LynFaceL, (30, 10))
             pygame.display.update()
