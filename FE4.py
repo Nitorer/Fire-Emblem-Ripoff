@@ -114,10 +114,6 @@ class Game:
     def MovDown(self):
         self.Sy += 1
 
-    def MoveLim(self, prev_ly, prev_lx, new_lx, new_ly, Movment):
-        print(prev_lx ,prev_ly)
-        return abs(new_lx - prev_lx) + abs(new_ly - prev_ly) <= Movment
-
     def DrawMovDistance(self):
         self.mov_surface.fill((0, 0, 0, 0))
         self.reachable_tiles = self.get_reachable_nodes(self.Lx, self.Ly, self.Mov)
@@ -125,13 +121,11 @@ class Game:
             self.mov_surface.blit(self.MovTile, (x * TILESIZE, y * TILESIZE))
             
     def DrawAtkDistance(self):
+        self.AtkRange = 1
         self.mov_surface.fill((0, 0, 0, 0))
-        self.atkRange = 1
-        self.MoveLim(self.Ly, self.Lx, self.Sy, self.Sx, self.atkRange)
-        for x in range(15):
-            for y in range(10):
-                if (abs(self.Sx - x) + abs(self.Sy - y)) <= self.atkRange and not self.IsTileOccupied(x, y, self.CharKey):
-                    self.mov_surface.blit(self.AtkTile, (x * TILESIZE, y * TILESIZE))
+        self.reachable_tiles = self.get_reachable_nodes(self.Lx, self.Ly, self.AtkRange)
+        for x, y in self.reachable_tiles:
+            self.mov_surface.blit(self.AtkTile, (x * TILESIZE, y * TILESIZE))
 
     def draw_menu(self): 
         selected = 0
