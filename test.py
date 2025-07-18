@@ -1,12 +1,23 @@
 import pygame
-from Sprites import
-from config* # type: ignore
+from Sprites import *
+from config import *
+from assets import load_images  # type: ignore
+from collections import deque
 import random
 import math
 import time
 import json
 import os 
 
+class Node:
+    def __init__(self, x, y, walkable=True):
+        self.x = x
+        self.y = y
+        self.walkable = walkable
+        self.parent = None
+        self.g = 0
+        self.h = 0
+        self.f = 0
 
 class Game:
     def __init__(self):
@@ -16,15 +27,24 @@ class Game:
         self.font = pygame.font.Font("gba-fe-dialogue.ttf", 40)
         self.running = True
         self.playing = True
+        self.reachable_tiles = []
+        self.current_path = []
 
         self.mov_surface = pygame.Surface((960, 640), pygame.SRCALPHA)
+
+        # Images
+        self.images = load_images("Assets")
+        self.BACKGROUND = self.images["Plains"]
+        self.MovTile = self.images["MovTile"]
+        self.AtkTile = self.images["AtkTile"]
+        self.LynFaceL = self.images["LynFaceL"]
 
         # Game state
         self.Sx, self.Sy = 5, 5
         self.Lx, self.Ly = 0, 0
         self.PrevLx, self.PrevLy = None, None
-        self.CharKey = None
-        self.Over = False
+        self.CharKey, self.SelectedUnit = None, None
+        self.Over, self.attacking = False, False
         self.Mov = 5
 
     def new(self):
@@ -33,9 +53,83 @@ class Game:
         self.enemies = pygame.sprite.LayeredUpdates()
         self.attacks = pygame.sprite.LayeredUpdates()
 
-        self.selector = Selector(self, self.Sx, self.Sy,image=images["Selector"])
-        self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1],image=images["Lyn"])
-        self.brigand = Brigand(self, PositionDict["Brig"][0], PositionDict["Brig"][1],image=images["Brigandr"])
+        self.selector = Selector(self, self.Sx, self.Sy, self.images["Selector"])
+        self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1], self.images["Lyn"])
+        self.brigand = Brigand(self, EnemyPosDict["Brig"][0], EnemyPosDict["Brig"][1], self.images["Brigand"])
+
+    def generate_grid(self):
+        self.grid = []
+        for y in range(10):
+            row = []
+            for x in range(15):
+                walkable = not self.IsTileOccupied(x, y, self.CharKey)
+                row.append(Node(x, y, walkable))
+            self.grid.append(row)
+
+    def get_reachable_nodes(self, start_x, start_y, move_range):
+        visited = set()
+        queue = deque([(start_x, start_y, 0)])
+        reachable = []
+
+        while queue:
+            x, y, dist = queue.popleft()
+            if (x, y) in visited or dist > move_range:
+                continue
+            visited.add((x, y))
+            reachable.append((x, y))
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < 15 and 0 <= ny < 10:
+                    if not self.IsTileOccupied(nx, ny, self.CharKey):
+                        queue.append((nx, ny, dist + 1))
+        return reachable
+
+    def astar_path(self, start, goal):
+        self.generate_grid()
+        open_set = []
+        closed_set = set()
+        start_node = self.grid[start[1]][start[0]]
+        goal_node = self.grid[goal[1]][goal[0]]
+
+        for row in self.grid:
+            for node in row:
+                node.g = node.h = node.f = 0
+                node.parent = None
+
+        open_set.append(start_node)
+
+        while open_set:
+            current = min(open_set, key=lambda n: n.f)
+            if (current.x, current.y) == (goal_node.x, goal_node.y):
+                path = []
+                while current:
+                    path.append((current.x, current.y))
+                    current = current.parent
+                return path[::-1]
+
+            open_set.remove(current)
+            closed_set.add((current.x, current.y))
+
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nx, ny = current.x + dx, current.y + dy
+                if not (0 <= nx < 15 and 0 <= ny < 10):
+                    continue
+                neighbor = self.grid[ny][nx]
+                if self.IsTileOccupied(nx, ny, self.CharKey) and (nx, ny) != (goal_node.x, goal_node.y):
+                    continue
+                if (neighbor.x, neighbor.y) in closed_set:
+                    continue
+                tentative_g = current.g + 1
+                if neighbor not in open_set:
+                    open_set.append(neighbor)
+                elif tentative_g >= neighbor.g:
+                    continue
+                neighbor.g = tentative_g
+                neighbor.h = abs(neighbor.x - goal_node.x) + abs(neighbor.y - goal_node.y)
+                neighbor.f = neighbor.g + neighbor.h
+                neighbor.parent = current
+
+        return []
 
     def GetCharPosKey(self, x, y):
         value = next((i for i in PositionDict if PositionDict[i][:2] == [x, y]), None)
@@ -45,63 +139,84 @@ class Game:
     def AssignCharVar(self):
         self.CharKey = self.GetCharPosKey(self.Sx, self.Sy)
         if self.CharKey:
+            self.SelectedUnit = self.CharKey
             self.Lx = PositionDict[self.CharKey][0]
             self.Ly = PositionDict[self.CharKey][1]
             print(self.Lx, self.Ly)
 
-    def MovLeft(self):
-        self.Sx -= 1
-
-    def MovRight(self):
-        self.Sx += 1
-
-    def MovUp(self):
-        self.Sy -= 1
-
-    def MovDown(self):
-        self.Sy += 1
-
-    def MoveLim(self, prev_ly, prev_lx, new_lx, new_ly):
-        return abs(new_lx - prev_lx) + abs(new_ly - prev_ly) <= self.Mov
+    def MovLeft(self): self.Sx -= 1
+    def MovRight(self): self.Sx += 1
+    def MovUp(self): self.Sy -= 1
+    def MovDown(self): self.Sy += 1
 
     def DrawMovDistance(self):
         self.mov_surface.fill((0, 0, 0, 0))
-        for x in range(15):
-            for y in range(10):
-                if (abs(self.Sx - x) + abs(self.Sy - y)) <= self.Mov and not self.IsTileOccupied(x, y, self.CharKey):
-                    self.mov_surface.blit(MovTile, (x * 64, y * 64))
+        self.reachable_tiles = self.get_reachable_nodes(self.PrevLx, self.PrevLy, self.Mov)
+        for x, y in self.reachable_tiles:
+            self.mov_surface.blit(self.MovTile, (x * TILESIZE, y * TILESIZE))
+
+    def DrawAtkDistance(self):
+        self.AtkRange = 1
+        self.mov_surface.fill((0, 0, 0, 0))
+        self.reachable_tiles = self.get_reachable_nodes(self.Lx, self.Ly, self.AtkRange)
+        for x, y in self.reachable_tiles:
+            self.mov_surface.blit(self.AtkTile, (x * TILESIZE, y * TILESIZE))
 
     def draw_menu(self):
         selected = 0
-        running = True
-        while running:
-            self.screen.fill(BLACK)
+        MenuOn = True
+        while MenuOn:
+            self.clock.tick(FPS)
+            self.screen.blit(self.BACKGROUND, (0, 0))
+            self.screen.blit(self.mov_surface, (0, 0))
+            self.all_sprites.draw(self.screen)
+
+            rect_x = 100
+            rect_y = 100
+            rect_width = 200
+            rect_height = len(options) * 70
+            rectangle = pygame.Rect(rect_x, rect_y, rect_width, rect_height)
+            self.menurect = pygame.draw.rect(self.screen, MENU_BLUE, rectangle)
+
             for i, text in enumerate(options):
                 color = BLUE if i == selected else WHITE
                 label = self.font.render(text, True, color)
-                self.screen.blit(label, (250, 150 + i * 50))
+                self.screen.blit(label, (120, 120 + i * TILESIZE))
 
+            self.update()
             pygame.display.flip()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.running = False
+                    MenuOn = False
+                    self.playing = False
                     return
                 if event.type == pygame.KEYDOWN:
+                    prevselected = selected
                     if event.key == pygame.K_UP:
                         selected = (selected - 1) % len(options)
                     elif event.key == pygame.K_DOWN:
                         selected = (selected + 1) % len(options)
-                    elif event.key == pygame.K_RETURN:
+                    elif event.key == pygame.K_s:
+                        MenuOn = False
+                    elif event.key == pygame.K_a:
                         print(f"Selected option: {options[selected]}")
-                        running = False
+                        MenuOn = False
+                        return options[selected]
                     elif event.key == pygame.K_ESCAPE:
-                        running = False
+                        MenuOn = False
+                    if options[selected] != options[prevselected]:
+                        if options[selected] == "Attack":
+                            self.DrawAtkDistance()
+                        else:
+                            self.ClearSurface()
 
     def ClearSurface(self):
         self.mov_surface.fill((0, 0, 0, 0))
+        pygame.display.update()
 
     def IsTileOccupied(self, x, y, ignore_key=None):
-        for key, value in PositionDict.items():
+        for key, value in EnemyPosDict.items():
             if key != ignore_key and value[0] == x and value[1] == y:
                 return True
         return False
@@ -111,59 +226,85 @@ class Game:
             if event.type == pygame.QUIT:
                 self.running = False
                 self.playing = False
-
             if event.type == pygame.KEYDOWN:
+                if self.Over and (self.Sx, self.Sy) in self.reachable_tiles:
+                    self.current_path = self.astar_path((self.PrevLx, self.PrevLy), (self.Sx, self.Sy))
+
                 if event.key == pygame.K_LEFT:
-                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx - 1, self.Ly) and not self.IsTileOccupied(self.Sx - 1, self.Sy, self.CharKey):
+                    if self.Over and (self.Sx - 1, self.Sy) in self.reachable_tiles:
                         self.MovLeft()
-                        PositionDict[self.CharKey][0] = self.Sx
-                        self.Lx = self.Sx
-                    elif not self.Over:
+                    elif not self.Over and not self.attacking:
+                        self.MovLeft()
+                    elif self.attacking and (self.Sx - 1, self.Sy) in self.reachable_tiles:
                         self.MovLeft()
 
                 elif event.key == pygame.K_RIGHT:
-                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx + 1, self.Ly) and not self.IsTileOccupied(self.Sx + 1, self.Sy, self.CharKey):
+                    if self.Over and (self.Sx + 1, self.Sy) in self.reachable_tiles:
                         self.MovRight()
-                        PositionDict[self.CharKey][0] = self.Sx
-                        self.Lx = self.Sx
-                    elif not self.Over:
+                    elif not self.Over and not self.attacking:
+                        self.MovRight()
+                    elif self.attacking and (self.Sx + 1, self.Sy) in self.reachable_tiles:
                         self.MovRight()
 
                 elif event.key == pygame.K_UP:
-                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx, self.Ly - 1) and not self.IsTileOccupied(self.Sx, self.Sy - 1, self.CharKey):
+                    if self.Over and (self.Sx, self.Sy - 1) in self.reachable_tiles:
                         self.MovUp()
-                        PositionDict[self.CharKey][1] = self.Sy
-                        self.Ly = self.Sy
-                    elif not self.Over:
+                    elif not self.Over and not self.attacking:
+                        self.MovUp()
+                    elif self.attacking and (self.Sx, self.Sy - 1) in self.reachable_tiles:
                         self.MovUp()
 
                 elif event.key == pygame.K_DOWN:
-                    if self.Over and self.MoveLim(self.PrevLy, self.PrevLx, self.Lx, self.Ly + 1) and not self.IsTileOccupied(self.Sx, self.Sy + 1, self.CharKey):
+                    if self.Over and (self.Sx, self.Sy + 1) in self.reachable_tiles:
                         self.MovDown()
-                        PositionDict[self.CharKey][1] = self.Sy
-                        self.Ly = self.Sy
-                    elif not self.Over:
+                    elif not self.Over and not self.attacking:
+                        self.MovDown()
+                    elif self.attacking and (self.Sx, self.Sy + 1) in self.reachable_tiles:
                         self.MovDown()
 
                 elif event.key == pygame.K_a:
+                    print(self.current_path, self.Sx)
                     self.CharKey = self.GetCharPosKey(self.Sx, self.Sy)
-                    if self.CharKey:
+                    if self.CharKey is not None:
                         self.AssignCharVar()
-                        self.Over = not self.Over
-                        self.DrawMovDistance()
-                        PositionDict[self.CharKey][2] = False
+                        self.Over = True
                         self.PrevLx = self.Lx
                         self.PrevLy = self.Ly
-                        if self.Over == False:
+                        self.DrawMovDistance()
+                    else:
+                        if (self.Sx, self.Sy) in self.reachable_tiles and self.current_path:
+                            for x, y in self.current_path:
+                                PositionDict[self.SelectedUnit][0] = x
+                                PositionDict[self.SelectedUnit][1] = y
+                                self.Sx, self.Sy = x, y
+                                self.Lx, self.Ly = x, y
+                                self.draw()
+                                pygame.display.flip()
+                                pygame.event.pump()
+                                pygame.time.delay(100)
+
+                            self.current_path = []
+                            self.reachable_tiles = []
+
+                        menu_result = self.draw_menu()
+                        if menu_result == "Item":
+                            self.StatScreen()
+                        elif menu_result == "Attack":
+                            pass
+                        elif menu_result == "Wait":
+                            self.SelectedUnit = None
+                            self.Over = False
                             self.ClearSurface()
 
                 elif event.key == pygame.K_s:
                     self.ClearSurface()
                     self.CharKey = self.GetCharPosKey(self.Sx, self.Sy)
-                    if self.CharKey:
+                    if self.attacking:
+                        self.DrawMovDistance()
+                        self.attacking = False
+                    elif self.CharKey:
                         PositionDict[self.CharKey][0] = self.PrevLx
                         PositionDict[self.CharKey][1] = self.PrevLy
-                        PositionDict[self.CharKey][2] = False
                         self.Over = False
 
                 elif event.key == pygame.K_q:
@@ -202,32 +343,32 @@ class Game:
                     exit()
                 elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     running = False
+                    self.draw_menu()
 
-            self.screen.blit(LynFaceL, (30, 10))
+            self.screen.blit(self.LynFaceL, (30, 10))
             pygame.display.update()
 
     def update(self):
         self.all_sprites.update()
 
     def draw(self):
-        self.screen.blit(BACKGROUND, (0, 0))
+        self.screen.blit(self.BACKGROUND, (0, 0))
         self.screen.blit(self.mov_surface, (0, 0))
         self.all_sprites.draw(self.screen)
         self.clock.tick(FPS)
+        for x, y in self.current_path:
+            pygame.draw.rect(self.screen, (50, 150, 255), (x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE), 3)
         pygame.display.update()
 
     def main(self):
+        self.new()  # Moved here to initialize only once
         while self.playing:
             self.events()
             self.update()
             self.draw()
-            self.new()
         self.running = False
-
 
 # Main loop
 g = Game()
-g.new()
-while g.running:
-    g.main()
+g.main()
 pygame.quit()

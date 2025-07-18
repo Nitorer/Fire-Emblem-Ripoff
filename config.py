@@ -24,6 +24,8 @@ selected = 0
 #Key = Character, [X Pos, Y Pos, SelectedStatus(0 is false, 1 is true)]
 PositionDict = {
 	"Lyn": [5,5,False],
+}
+EnemyPosDict = {
 	"Brig": [5,2,False]
 }
 SelectorPos = [5,5]
