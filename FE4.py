@@ -58,7 +58,7 @@ class Game:
 
         self.selector = Selector(self, self.Sx, self.Sy, self.images["Selector"])
         self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1], self.images["Lyn"])
-        self.brigand = Brigand(self, PositionDict["Brig"][0], PositionDict["Brig"][1], self.images["Brigand"])
+        self.brigand = Brigand(self, EnemyPosDict["Brig"][0], EnemyPosDict["Brig"][1], self.images["Brigand"])
         
     def generate_grid(self):
         self.grid = []
@@ -253,7 +253,7 @@ class Game:
         pygame.display.update()
 
     def IsTileOccupied(self, x, y, ignore_key=None):
-        for key, value in PositionDict.items():
+        for key, value in EnemyPosDict.items():
             if key != ignore_key and key != self.SelectedUnit and value[0] == x and value[1] == y:
                 return True
         return False
