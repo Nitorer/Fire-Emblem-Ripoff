@@ -19,14 +19,16 @@ FPS = 30
 Mov = 5
 MapWidth = 14
 MapHeight = 9
-options = ["Item", "Attack", "Wait"]
+atk_options = ["Item", "Attack", "Wait"]
+wait_options = ["Item", "Wait"]
+map_options = ["Unit", "Status", "Options", "Suspend", "End"]
 selected = 0 
 #Key = Character, [X Pos, Y Pos, SelectedStatus(0 is false, 1 is true)]
 PositionDict = {
-	"Lyn": [5,5,False],
+	"Lyn": [5,5],
 }
 EnemyPosDict = {
-	"Brig": [5,2,False]
+	"Brig": [5,2]
 }
 SelectorPos = [5,5]
 SelectedDict = {

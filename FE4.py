@@ -57,7 +57,7 @@ class Game:
         self.attacks = pygame.sprite.LayeredUpdates()
 
         self.selector = Selector(self, self.Sx, self.Sy, self.images["Selector"])
-        self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1], self.images["Lyn"])
+        self.lyn = Lyn(self, PositionDict["Lyn"][0], PositionDict["Lyn"][1])
         self.brigand = Brigand(self, EnemyPosDict["Brig"][0], EnemyPosDict["Brig"][1], self.images["Brigand"])
         
     def generate_grid(self):
@@ -70,7 +70,7 @@ class Game:
             self.grid.append(row)
     
      
-    def get_reachable_nodes(self, start_x, start_y, move_range):
+    def get_reachable_nodes(self, start_x, start_y, move_range, atkcheck):
         visited = set()
         queue = deque([(start_x, start_y, 0)])
         reachable = []
@@ -86,8 +86,12 @@ class Game:
             for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < 15 and 0 <= ny < 10:
-                    if not self.IsTileOccupied(nx, ny, self.CharKey):
+                    if atkcheck:
                         queue.append((nx, ny, dist + 1))
+                    else:
+                        if not self.IsTileOccupied(nx, ny, self.CharKey):
+                            queue.append((nx, ny, dist + 1))
+                            
         
         return reachable
     
@@ -174,14 +178,14 @@ class Game:
 
     def DrawMovDistance(self):
         self.mov_surface.fill((0, 0, 0, 0))
-        self.reachable_tiles = self.get_reachable_nodes(self.PrevLx, self.PrevLy, self.Mov)
+        self.reachable_tiles = self.get_reachable_nodes(self.PrevLx, self.PrevLy, self.Mov, False)
         for x, y in self.reachable_tiles:
             self.mov_surface.blit(self.MovTile, (x * TILESIZE, y * TILESIZE))
             
     def DrawAtkDistance(self):
         self.AtkRange = 1
         self.mov_surface.fill((0, 0, 0, 0))
-        self.reachable_tiles = self.get_reachable_nodes(self.Lx, self.Ly, self.AtkRange)
+        self.reachable_tiles = self.get_reachable_nodes(self.Lx, self.Ly, self.AtkRange, False)
         for x, y in self.reachable_tiles:
             self.mov_surface.blit(self.AtkTile, (x * TILESIZE, y * TILESIZE))
 
@@ -195,6 +199,12 @@ class Game:
             self.screen.blit(self.BACKGROUND, (0, 0))  # Draw background
             self.screen.blit(self.mov_surface, (0, 0))  # Draw movement/attack overlay
             self.all_sprites.draw(self.screen)  # Draw units
+            self.attackingTiles = self.get_reachable_nodes(self.Lx, self.Ly, 1, True)
+            for value in EnemyPosDict.values():
+                if tuple(value) in self.attackingTiles:
+                    options = atk_options
+                else:
+                    options = wait_options
 
             # Draw menu
             rect_x = 100
@@ -203,6 +213,8 @@ class Game:
             rect_height = len(options) * 70
             rectangle = pygame.Rect(rect_x, rect_y, rect_width, rect_height)
             self.menurect = pygame.draw.rect(self.screen, MENU_BLUE, rectangle)
+
+            print(self.attackingTiles, EnemyPosDict)
 
             for i, text in enumerate(options):
                 color = BLUE if i == selected else WHITE
@@ -320,11 +332,20 @@ class Game:
                     if self.attacking:
                         self.DrawMovDistance()
                         self.attacking = False
-                        
+                    #Refactor these to fit into one 
                     elif self.CharKey:
-                        PositionDict[self.CharKey][0] = self.PrevLx
-                        PositionDict[self.CharKey][1] = self.PrevLy
-                        self.Over = False
+                        if self.PrevLx != None:
+                            PositionDict[self.CharKey][0] = self.PrevLx
+                            PositionDict[self.CharKey][1] = self.PrevLy
+                            self.Over, self.SelectedUnit = False, False
+                            self.current_path, self.reachable_tiles = [], []
+                            self.ClearSurface()
+                            
+                    elif self.SelectedUnit:
+                        self.SelectedUnit, self.Over = False, False
+                        self.current_path, self.reachable_tiles = [], []
+                        self.ClearSurface()
+                        
 
                 elif event.key == pygame.K_q:
                     self.draw_menu()
