@@ -166,15 +166,19 @@ class Game:
 
     def MovLeft(self):
         self.Sx -= 1
+        SelectorPos[0] = self.Sx
 
     def MovRight(self):
         self.Sx += 1
+        SelectorPos[0] = self.Sx
 
     def MovUp(self):
         self.Sy -= 1
+        SelectorPos[1] = self.Sy
 
     def MovDown(self):
         self.Sy += 1
+        SelectorPos[1] = self.Sy
 
     def DrawMovDistance(self):
         self.mov_surface.fill((0, 0, 0, 0))
@@ -389,7 +393,8 @@ class Game:
             pygame.display.update()
 
     def update(self):
-        self.all_sprites.update()
+        dt = self.clock.tick(FPS)
+        self.all_sprites.update(dt)
         
         if self.animating_path:
             if self.current_path:
@@ -435,7 +440,6 @@ class Game:
             self.events()
             self.update()
             self.draw()
-            self.new()
         self.running = False
 
 

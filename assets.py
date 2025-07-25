@@ -35,17 +35,22 @@ class SpriteSheet:
         return scaled_frame
         
 class Animation:
-    def __init__(self, frames, frame_duration):
+    def __init__(self, frames, frame_duration, loop=True):
         self.frames = frames
         self.frame_duration = frame_duration 
         self.current_time = 0
         self.index = 0
-        
+        self.loop = loop
+
     def update(self, dt):
-        self.current_time += dt
+        self.current_time = self.current_time + dt
+        print(self.current_time)
         if self.current_time >= self.frame_duration:
             self.current_time = 0
-            self.index = (self.index + 1) % len(self.frames)
+            if self.index < len(self.frames) - 1:
+                self.index += 1
+            elif self.loop:
+                self.index = 0  # Loop back
             
     def get_current_frame(self):
         return self.frames[self.index]

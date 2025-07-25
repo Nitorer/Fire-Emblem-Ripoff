@@ -23,8 +23,9 @@ class Selector(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
-    def update(self):
-        pass
+    def update(self, dt):
+        self.x, self.y = SelectorPos[0], SelectorPos[1]
+        self.rect.topleft = (self.x * TILESIZE, self.y * TILESIZE)
 
 class Lyn(pygame.sprite.Sprite):
     def __init__(self, game, x, y, image=None):  # `image` is no longer used
@@ -51,11 +52,15 @@ class Lyn(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.topleft = (self.tx * TILESIZE, self.ty * TILESIZE)
 
-    def update(self):
-            
-        self.current_anim.update(self.game.clock.get_time())
+    def update(self, dt):
+        pos = PositionDict.get("Lyn")
+        if pos:
+            self.tx, self.ty = pos[0], pos[1]
+
+        self.current_anim.update(dt)
         self.image = self.current_anim.get_current_frame()
         self.rect.topleft = (self.tx * TILESIZE, self.ty * TILESIZE)
+
 
 
     def set_tile_position(self, x, y):
@@ -83,5 +88,5 @@ class Brigand(pygame.sprite.Sprite):
         self.rect.x = self.x
         self.rect.y = self.y
 
-    def update(self):
+    def update(self, dt):
         pass
