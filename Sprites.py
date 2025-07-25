@@ -4,6 +4,8 @@ import math
 import random
 from assets  import SpriteSheet, Animation
 
+
+
 class Selector(pygame.sprite.Sprite):
     def __init__(self, game, x, y, image):
         self.game = game
@@ -37,23 +39,24 @@ class Lyn(pygame.sprite.Sprite):
         self.height = TILESIZE
 
         # Load sprite sheet and animations
-        self.sheet = SpriteSheet("Assets/Lyn.gif", 64, 64)
+        self.sheet = SpriteSheet("Assets/Lyn.gif", 16, 16)
         self.animations = {
-            "idle": Animation([self.sheet.get_frame(0, 0)], 1000),
+            "idle": Animation([self.sheet.get_frame(i, 0, 433 ,396) for i in range(4)], 200),
             "attack": Animation([self.sheet.get_frame(i, 0) for i in range(8)], 100),
             "crit": Animation([self.sheet.get_frame(i, 1) for i in range(8)], 100),
         }
         self.current_anim = self.animations["idle"]
-
+        self.map_icon = self.sheet.get_frame(col=0, row=5)
         self.image = self.current_anim.get_current_frame()
         self.rect = self.image.get_rect()
         self.rect.topleft = (self.tx * TILESIZE, self.ty * TILESIZE)
 
     def update(self):
-        # Advance animation
+            
         self.current_anim.update(self.game.clock.get_time())
         self.image = self.current_anim.get_current_frame()
         self.rect.topleft = (self.tx * TILESIZE, self.ty * TILESIZE)
+
 
     def set_tile_position(self, x, y):
         self.tx = x
