@@ -40,7 +40,7 @@ class Lyn(pygame.sprite.Sprite):
         self.height = TILESIZE
 
         # Load sprite sheet and animations
-        self.sheet = SpriteSheet("Assets/Lyn.gif", 16, 16)
+        self.sheet = SpriteSheet("Assets/Lyn.gif", 21, 16)
         self.animations = {
             "idle": Animation([self.sheet.get_frame(i, 0, 433 ,396) for i in range(4)], 200),
             "attack": Animation([self.sheet.get_frame(i, 0) for i in range(8)], 100),
