@@ -39,7 +39,7 @@ class Game:
         self.MovTile = self.images["MovTile"]
         self.AtkTile = self.images["AtkTile"]
         self.LynFaceL = self.images["LynFaceL"]
-
+        self.Arrow = self.images["Arrow"]
         
         # Game state
         self.Sx, self.Sy = 5, 5
@@ -286,6 +286,7 @@ class Game:
                     self.current_path = self.astar_path((self.PrevLx, self.PrevLy), (self.Sx, self.Sy))
                     
                 if event.key == pygame.K_LEFT:
+                    
                     if self.SelectedUnit and (self.Sx - 1, self.Sy) in self.reachable_tiles:
                         self.MovLeft()
                     elif not self.Over and not self.attacking:
@@ -326,6 +327,7 @@ class Game:
                         self.PrevLx = self.Lx
                         self.PrevLy = self.Ly
                         self.DrawMovDistance()
+                        self.lyn.play("selected")
                     elif (self.Sx, self.Sy) in self.reachable_tiles and self.current_path:
                         self.animating_path = True  # Movement happens in update()                               
                             
@@ -336,8 +338,10 @@ class Game:
                     if self.attacking:
                         self.DrawMovDistance()
                         self.attacking = False
+                        
                     #Refactor these to fit into one 
                     elif self.CharKey:
+                        self.lyn.play("idle")
                         if self.PrevLx != None:
                             PositionDict[self.CharKey][0] = self.PrevLx
                             PositionDict[self.CharKey][1] = self.PrevLy
@@ -346,6 +350,7 @@ class Game:
                             self.ClearSurface()
                             
                     elif self.SelectedUnit:
+                        self.lyn.play("idle")
                         self.SelectedUnit, self.Over = False, False
                         self.current_path, self.reachable_tiles = [], []
                         self.ClearSurface()
@@ -397,6 +402,23 @@ class Game:
         self.all_sprites.update(dt)
         
         if self.animating_path:
+            if len(self.current_path) >= 2:
+                curr = self.current_path[0]
+                next_pos = self.current_path[1]
+                dx = next_pos[0] - curr[0]
+                dy = next_pos[1] - curr[1]
+                
+                if self.SelectedUnit == "Lyn":
+                    if dx != 0:
+                        self.lyn.play("movright")
+                        if dx > 0:
+                            self.lyn.facing_left = False
+                        elif dx < 0:
+                            self.lyn.facing_left = True
+                    if dy < 0:
+                        self.lyn.play("movup")
+                    elif dy > 0:
+                        self.lyn.play("movdown")
             if self.current_path:
                 x,y = self.current_path.pop(0)
                 PositionDict[self.SelectedUnit][0] = x
@@ -417,8 +439,6 @@ class Game:
         self.screen.blit(self.mov_surface, (0, 0))
         self.all_sprites.draw(self.screen)
         self.clock.tick(FPS)
-        for x, y in self.current_path:
-            pygame.draw.rect(self.screen, (50, 150, 255), (x * TILESIZE, y * TILESIZE, TILESIZE, TILESIZE), 3)
         pygame.display.update()
 
     def main(self):

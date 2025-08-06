@@ -33,6 +33,8 @@ class Lyn(pygame.sprite.Sprite):
         self._layer = LYN_LAYER
         self.groups = self.game.all_sprites
         pygame.sprite.Sprite.__init__(self, self.groups)
+        
+        self.facing_left = False
 
         self.tx = x  # tile x
         self.ty = y  # tile y
@@ -40,11 +42,14 @@ class Lyn(pygame.sprite.Sprite):
         self.height = TILESIZE
 
         # Load sprite sheet and animations
-        self.sheet = SpriteSheet("Assets/Lyn.gif", 21, 16)
+        self.sheet = SpriteSheet("Assets/Lynmap.png", 21, 16)
         self.animations = {
-            "idle": Animation([self.sheet.get_frame(i, 0, 433 ,396) for i in range(4)], 200),
-            "attack": Animation([self.sheet.get_frame(i, 0) for i in range(8)], 100),
-            "crit": Animation([self.sheet.get_frame(i, 1) for i in range(8)], 100),
+            "idle": Animation([self.sheet.get_frame(i, 0, 2 ,2) for i in range(4)], 200),
+            "movright": Animation([self.sheet.get_frame(i, 0, 4, 46) for i in range(4)], 200),
+            "movleft": Animation([self.sheet.get_frame(i, 0, 4, 46) for i in range(4)], 200),
+            "movup": Animation([self.sheet.get_frame(i, 0, 5, 65) for i in range(4)], 100),
+            "movdown": Animation([self.sheet.get_frame(i, 0, 5, 24 ) for i in range(4)], 100),
+            "selected": Animation([self.sheet.get_frame(i, 0, 6, 90) for i in range(3)], 100),
         }
         self.current_anim = self.animations["idle"]
         self.map_icon = self.sheet.get_frame(col=0, row=5)
@@ -59,6 +64,8 @@ class Lyn(pygame.sprite.Sprite):
 
         self.current_anim.update(dt)
         self.image = self.current_anim.get_current_frame()
+        if self.facing_left:
+            self.image = pygame.transform.flip(self.image, True, False)
         self.rect.topleft = (self.tx * TILESIZE, self.ty * TILESIZE)
 
 
